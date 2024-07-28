@@ -512,12 +512,15 @@ impl<T: ?Sized + CopyWrite> CopyWrite for BufWriter<T> {
 }
 
 fn fd_to_meta<T: AsRawFd>(fd: &T) -> FdMeta {
-    let fd = fd.as_raw_fd();
-    let file: ManuallyDrop<File> = ManuallyDrop::new(unsafe { File::from_raw_fd(fd) });
-    match file.metadata() {
-        Ok(meta) => FdMeta::Metadata(meta),
-        Err(_) => FdMeta::NoneObtained,
+    fn fd_to_meta_inner(fd: RawFd) -> FdMeta {
+        let file: ManuallyDrop<File> = ManuallyDrop::new(unsafe { File::from_raw_fd(fd) });
+        match file.metadata() {
+            Ok(meta) => FdMeta::Metadata(meta),
+            Err(_) => FdMeta::NoneObtained,
+        }
     }
+
+    fd_to_meta_inner(fd.as_raw_fd())
 }
 
 pub(super) enum CopyResult {
